@@ -1,35 +1,30 @@
-// background.js
-importScripts('scorer.js');
+importScripts("scorer.js");
 
 try {
-  importScripts('config.js');
+  importScripts("config.js");
 } catch (e) {
   try {
-    importScripts('config.example.js');
-  } catch (e2) {
-
-  }
+    importScripts("config.example.js");
+  } catch (e2) {}
 }
-const FEEDBACK_ENDPOINT_FALLBACK = typeof DEFAULT_FEEDBACK_ENDPOINT !== 'undefined' ? DEFAULT_FEEDBACK_ENDPOINT : null;
+
+const FEEDBACK_ENDPOINT_FALLBACK = typeof DEFAULT_FEEDBACK_ENDPOINT !== "undefined" ? DEFAULT_FEEDBACK_ENDPOINT : null;
 
 async function ghFetch(url, token) {
-  const headers = { Accept: 'application/vnd.github+json' };
+  const headers = {
+    Accept: "application/vnd.github+json"
+  };
   if (token) headers.Authorization = `Bearer ${token}`;
-  const res = await fetch(url, { headers });
-
+  const res = await fetch(url, {
+    headers: headers
+  });
   if (!res.ok) {
     if (res.status === 403 || res.status === 429) {
-      const remaining = res.headers.get('x-ratelimit-remaining');
-      if (remaining === '0') {
-        const resetHeader = res.headers.get('x-ratelimit-reset');
-        const resetMins = resetHeader
-          ? Math.max(1, Math.round((Number(resetHeader) * 1000 - Date.now()) / 60000))
-          : null;
-        throw new Error(
-          token
-            ? `GitHub rate limit reached${resetMins ? `, resets in ~${resetMins} min` : ''}.`
-            : `GitHub rate limit reached (60/hr without a token, add one in the extension's popup for 5,000/hr).`
-        );
+      const remaining = res.headers.get("x-ratelimit-remaining");
+      if (remaining === "0") {
+        const resetHeader = res.headers.get("x-ratelimit-reset");
+        const resetMins = resetHeader ? Math.max(1, Math.round((Number(resetHeader) * 1e3 - Date.now()) / 6e4)) : null;
+        throw new Error(token ? `GitHub rate limit reached${resetMins ? `, resets in ~${resetMins} min` : ""}.` : `GitHub rate limit reached (60/hr without a token, add one in the extension's popup for 5,000/hr).`);
       }
       throw new Error(`GitHub API refused the request (403), the repo may be private or access-restricted.`);
     }
@@ -38,15 +33,18 @@ async function ghFetch(url, token) {
     }
     throw new Error(`GitHub API error ${res.status} for ${url}`);
   }
-
   return res.json();
 }
 
 async function getReadmeText(owner, repo, token) {
   try {
-    const headers = { Accept: 'application/vnd.github.raw+json' };
+    const headers = {
+      Accept: "application/vnd.github.raw+json"
+    };
     if (token) headers.Authorization = `Bearer ${token}`;
-    const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/readme`, { headers });
+    const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/readme`, {
+      headers: headers
+    });
     if (!res.ok) return null;
     return await res.text();
   } catch {
@@ -68,12 +66,18 @@ async function computeScoreForRepo(owner, repo, token, paperPublishDate, skipRes
   const issues = await ghFetch(`https://api.github.com/repos/${owner}/${repo}/issues?state=open&per_page=50`, token);
   const readmeText = await getReadmeText(owner, repo, token);
   const hasWorkflow = await hasWorkflowFile(owner, repo, token);
-
-  return scoreRepo({ repoMeta, issues, readmeText, hasWorkflow, paperPublishDate, skipResearchGate });
+  return scoreRepo({
+    repoMeta: repoMeta,
+    issues: issues,
+    readmeText: readmeText,
+    hasWorkflow: hasWorkflow,
+    paperPublishDate: paperPublishDate,
+    skipResearchGate: skipResearchGate
+  });
 }
 
 async function findRepoViaPapersWithCode(arxivId) {
-  const cleanId = arxivId.replace(/v\d+$/, '');
+  const cleanId = arxivId.replace(/v\d+$/, "");
   const paperRes = await fetch(`https://paperswithcode.com/api/v1/papers/?arxiv_id=${encodeURIComponent(cleanId)}`);
   if (!paperRes.ok) return null;
   const paperData = await paperRes.json();
@@ -98,108 +102,128 @@ async function repoFromPapersWithCodePaper(paperId) {
   const repoData = await repoRes.json();
   const repos = repoData.results || [];
   if (repos.length === 0) return null;
-
   const best = repos.find(r => r.is_official) || repos[0];
   if (!best || !best.url) return null;
   const m = best.url.match(/github\.com\/([^\/]+)\/([^\/?#]+)/);
   if (!m) return null;
-  return { owner: m[1], repo: m[2].replace(/\.git$/, '') };
+  return {
+    owner: m[1],
+    repo: m[2].replace(/\.git$/, "")
+  };
 }
 
 async function findRepoViaGithubCodeSearch(arxivId, token) {
   if (!token) return null;
-
   const headers = {
-    Accept: 'application/vnd.github+json',
+    Accept: "application/vnd.github+json",
     Authorization: `Bearer ${token}`
   };
-
-  const queries = [
-    `${arxivId} in:readme`,
-    `arxiv.org/abs/${arxivId} in:readme`
-  ];
-
+  const queries = [ `${arxivId} in:readme`, `arxiv.org/abs/${arxivId} in:readme` ];
   for (const q of queries) {
     const url = `https://api.github.com/search/code?q=${encodeURIComponent(q)}&per_page=5`;
-    const res = await fetch(url, { headers });
-    if (!res.ok) continue; 
+    const res = await fetch(url, {
+      headers: headers
+    });
+    if (!res.ok) continue;
     const data = await res.json();
     if (data.items && data.items.length > 0) {
       const item = data.items[0];
-      return { owner: item.repository.owner.login, repo: item.repository.name };
+      return {
+        owner: item.repository.owner.login,
+        repo: item.repository.name
+      };
     }
   }
   return null;
 }
 
 async function lookupSemanticScholar(arxivId) {
-  const fields = 'citationCount,influentialCitationCount,externalIds,openAccessPdf,title';
+  const fields = "citationCount,influentialCitationCount,externalIds,openAccessPdf,title";
   const url = `https://api.semanticscholar.org/graph/v1/paper/arXiv:${arxivId}?fields=${fields}`;
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Semantic Scholar API ${res.status}`);
   const data = await res.json();
-
   let repo = null;
-  const candidateStrings = JSON.stringify(data.externalIds || {}) + (data.openAccessPdf ? JSON.stringify(data.openAccessPdf) : '');
+  const candidateStrings = JSON.stringify(data.externalIds || {}) + (data.openAccessPdf ? JSON.stringify(data.openAccessPdf) : "");
   const m = candidateStrings.match(/github\.com\/([^\/"]+)\/([^\/"]+)/);
   if (m) {
-    repo = { owner: m[1], repo: m[2] };
+    repo = {
+      owner: m[1],
+      repo: m[2]
+    };
   }
-
   return {
     citationCount: data.citationCount,
     influentialCitationCount: data.influentialCitationCount,
-    repo
+    repo: repo
   };
 }
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-  if (msg.type === 'SEND_FEEDBACK') {
+  if (msg.type === "SEND_FEEDBACK") {
     (async () => {
       try {
-        const { feedbackEndpoint } = await chrome.storage.sync.get('feedbackEndpoint');
+        const {feedbackEndpoint: feedbackEndpoint} = await chrome.storage.sync.get("feedbackEndpoint");
         const endpoint = feedbackEndpoint || FEEDBACK_ENDPOINT_FALLBACK;
         if (!endpoint) {
-          sendResponse({ ok: false, skipped: true });
+          sendResponse({
+            ok: false,
+            skipped: true
+          });
           return;
         }
         const res = await fetch(endpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json"
+          },
           body: JSON.stringify(msg.report)
         });
-        sendResponse({ ok: res.ok });
+        sendResponse({
+          ok: res.ok
+        });
       } catch (err) {
-        sendResponse({ ok: false, error: err.message });
+        sendResponse({
+          ok: false,
+          error: err.message
+        });
       }
     })();
     return true;
   }
-  if (msg.type === 'LOOKUP_PAPERS_WITH_CODE_BY_TITLE') {
+  if (msg.type === "LOOKUP_PAPERS_WITH_CODE_BY_TITLE") {
     (async () => {
       try {
         const repo = await findRepoViaPapersWithCodeTitle(msg.title);
-        sendResponse({ ok: true, repo, repoSource: repo ? 'papers-with-code' : null });
+        sendResponse({
+          ok: true,
+          repo: repo,
+          repoSource: repo ? "papers-with-code" : null
+        });
       } catch (err) {
-        sendResponse({ ok: false, error: err.message });
+        sendResponse({
+          ok: false,
+          error: err.message
+        });
       }
     })();
     return true;
   }
-  if (msg.type === 'LOOKUP_SEMANTIC_SCHOLAR') {
+  if (msg.type === "LOOKUP_SEMANTIC_SCHOLAR") {
     (async () => {
       try {
-        const { githubToken } = await chrome.storage.sync.get('githubToken');
+        const {githubToken: githubToken} = await chrome.storage.sync.get("githubToken");
         const data = await lookupSemanticScholar(msg.arxivId);
         if (!data.repo) {
           try {
             const pwcRepo = await findRepoViaPapersWithCode(msg.arxivId);
             if (pwcRepo) {
               data.repo = pwcRepo;
-              data.repoSource = 'papers-with-code';
+              data.repoSource = "papers-with-code";
             }
           } catch (e) {
-            console.warn('Papers with Code fallback failed:', e.message);
+            console.warn("Papers with Code fallback failed:", e.message);
           }
         }
         if (!data.repo) {
@@ -207,35 +231,45 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
             const codeSearchRepo = await findRepoViaGithubCodeSearch(msg.arxivId, githubToken);
             if (codeSearchRepo) {
               data.repo = codeSearchRepo;
-              data.repoSource = 'github-code-search';
+              data.repoSource = "github-code-search";
             } else if (data.repo === null) {
               data.repoSource = null;
             }
           } catch (e) {
-            console.warn('GitHub code search fallback failed:', e.message);
+            console.warn("GitHub code search fallback failed:", e.message);
           }
         } else {
-          data.repoSource = data.repoSource || 'semantic-scholar';
+          data.repoSource = data.repoSource || "semantic-scholar";
         }
-
-        sendResponse({ ok: true, data });
+        sendResponse({
+          ok: true,
+          data: data
+        });
       } catch (err) {
-        sendResponse({ ok: false, error: err.message });
+        sendResponse({
+          ok: false,
+          error: err.message
+        });
       }
     })();
     return true;
   }
-
-  if (msg.type === 'SCORE_REPO') {
+  if (msg.type === "SCORE_REPO") {
     (async () => {
       try {
-        const { githubToken } = await chrome.storage.sync.get('githubToken');
+        const {githubToken: githubToken} = await chrome.storage.sync.get("githubToken");
         const result = await computeScoreForRepo(msg.owner, msg.repo, githubToken, msg.paperPublishDate, msg.skipResearchGate);
-        sendResponse({ ok: true, result });
+        sendResponse({
+          ok: true,
+          result: result
+        });
       } catch (err) {
-        sendResponse({ ok: false, error: err.message });
+        sendResponse({
+          ok: false,
+          error: err.message
+        });
       }
     })();
-    return true; 
+    return true;
   }
 });
