@@ -1,0 +1,162 @@
+#repro-score-widget {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 320px;
+  max-height: 70vh;
+  overflow-y: auto;
+  background: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 13px;
+  z-index: 999999;
+  color: #1a1a1a;
+}
+
+#repro-score-widget .rs-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 3px solid #ccc;
+  font-weight: 600;
+}
+
+#repro-score-widget .rs-score {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+#repro-score-widget .rs-label {
+  flex: 1;
+  color: #444;
+  font-weight: 500;
+}
+
+#repro-score-widget .rs-toggle {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+#repro-score-widget .rs-description {
+  padding: 10px 12px 0;
+  font-size: 12.5px;
+  color: #555;
+  font-style: italic;
+}
+
+#repro-score-widget .rs-footer {
+  padding: 8px 12px;
+  font-size: 11px;
+  color: #888;
+  border-top: 1px solid #eee;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+#repro-score-widget .rs-feedback-toggle {
+  border: none;
+  background: transparent;
+  color: #1a73e8;
+  font-size: 11px;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  flex-shrink: 0;
+}
+
+#repro-score-widget .rs-feedback-panel {
+  padding: 10px 12px;
+  border-top: 1px solid #eee;
+  background: #f7f7f7;
+  font-size: 12px;
+}
+
+#repro-score-widget .rs-feedback-panel select,
+#repro-score-widget .rs-feedback-panel textarea {
+  width: 100%;
+  box-sizing: border-box;
+  font-size: 12px;
+  padding: 5px 6px;
+  margin-top: 4px;
+  margin-bottom: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-family: inherit;
+}
+
+#repro-score-widget .rs-feedback-panel button.rs-feedback-submit {
+  padding: 6px 10px;
+  font-size: 12px;
+  background: #1a73e8;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+#repro-score-widget .rs-feedback-status {
+  margin-top: 6px;
+  font-size: 11px;
+  color: #2e7d32;
+}
+  padding: 8px 12px;
+  font-size: 12.5px;
+  color: #333;
+  background: #f7f7f7;
+  border-bottom: 1px solid #eee;
+}
+
+#repro-score-widget .rs-body {
+  padding: 8px 12px 12px;
+}
+
+#repro-score-widget.rs-collapsed .rs-body {
+  display: none;
+}
+
+#repro-score-widget .rs-row {
+  display: flex;
+  gap: 6px;
+  padding: 6px 0;
+  border-bottom: 1px solid #f0f0f0;
+  align-items: flex-start;
+}
+
+#repro-score-widget .rs-row:last-child {
+  border-bottom: none;
+}
+
+#repro-score-widget .rs-ok .rs-icon { color: #2e7d32; }
+#repro-score-widget .rs-bad .rs-icon { color: #c62828; }
+#repro-score-widget .rs-neutral .rs-icon { color: #666; }
+
+#repro-score-widget .rs-meta {
+  background: #f5f7fb;
+  border-radius: 6px;
+  padding: 6px 8px;
+  margin-bottom: 6px;
+  border-bottom: none;
+}
+
+#repro-score-widget .rs-links {
+  display: flex;
+  flex-direction: column;
+  margin-top: 4px;
+  gap: 2px;
+}
+
+#repro-score-widget .rs-links a {
+  font-size: 12px;
+  color: #1a73e8;
+  text-decoration: none;
+}
+
+#repro-score-widget .rs-links a:hover {
+  text-decoration: underline;
+}

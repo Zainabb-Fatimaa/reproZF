@@ -1,0 +1,42 @@
+{
+  "manifest_version": 3,
+  "name": "ReproZF",
+  "version": "1.0.0",
+  "description": "Shows a trust/reproducibility score for research code repos, right on GitHub and arXiv pages.",
+  "permissions": ["storage", "activeTab"],
+  "host_permissions": [
+    "https://api.github.com/*",
+    "https://api.semanticscholar.org/*",
+    "https://paperswithcode.com/*",
+    "https://github.com/*",
+    "https://arxiv.org/*",
+    "https://www.science.org/*",
+    "https://www.researchgate.net/*",
+    "https://formspree.io/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://github.com/*",
+        "https://arxiv.org/abs/*",
+        "https://www.science.org/doi/*",
+        "https://www.researchgate.net/publication/*"
+      ],
+      "js": ["content.js"],
+      "css": ["widget.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Reproducibility Score"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}
