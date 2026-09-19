@@ -76,27 +76,25 @@ function scoreRepo({repoMeta: repoMeta, issues: issues, readmeText: readmeText, 
     };
   }
   const breakdown = [];
-  let score = 100;
+  let score = 0;
   if (repoMeta && repoMeta.pushed_at) {
     const daysSinceLastCommit = daysBetween(repoMeta.pushed_at, Date.now());
     if (paperPublishDate) {
       const daysAfterPaper = daysBetween(repoMeta.pushed_at, paperPublishDate);
       if (daysSinceLastCommit > 300 && daysAfterPaper < 90) {
-        score -= 25;
         breakdown.push({
           ok: false,
-          text: `Repo went quiet ~${Math.round(daysAfterPaper)} days after the paper and hasn't been touched since (${Math.round(daysSinceLastCommit)} days ago).`
+          text: `Repo went quiet ~${Math.round(daysAfterPaper)} days after the paper and hasn't been touched since (${Math.round(daysSinceLastCommit)} days ago). Informational, doesn't affect the score.`
         });
       } else if (daysSinceLastCommit > 365) {
-        score -= 10;
         breakdown.push({
           ok: false,
-          text: `Last commit was ${Math.round(daysSinceLastCommit)} days ago.`
+          text: `Last commit was ${Math.round(daysSinceLastCommit)} days ago. Informational, doesn't affect the score.`
         });
       } else {
         breakdown.push({
           ok: true,
-          text: `Actively maintained (last commit ${Math.round(daysSinceLastCommit)} days ago).`
+          text: `Actively maintained (last commit ${Math.round(daysSinceLastCommit)} days ago). Informational, doesn't affect the score.`
         });
       }
     }
@@ -106,20 +104,19 @@ function scoreRepo({repoMeta: repoMeta, issues: issues, readmeText: readmeText, 
     return REPRO_FAIL_PATTERNS.some(re => re.test(text));
   });
   if (failIssues.length > 0) {
-    const penalty = Math.min(30, failIssues.length * 6);
-    score -= penalty;
     breakdown.push({
       ok: false,
-      text: `${failIssues.length} open issue(s) mention reproduction problems.`,
+      text: `${failIssues.length} open issue(s) mention reproduction problems. (0/25)`,
       links: failIssues.slice(0, 5).map(i => ({
         title: i.summary || i.title,
         url: i.html_url
       }))
     });
   } else {
+    score += 25;
     breakdown.push({
       ok: true,
-      text: `No open issues matched known reproduction-failure phrasing (checked the ${Math.min((issues || []).length, 50)} most recent open issues; differently worded reports can be missed).`
+      text: `No open issues matched known reproduction-failure phrasing (checked the ${Math.min((issues || []).length, 50)} most recent open issues; differently worded reports can be missed). (25/25)`
     });
   }
   if (readmeText) {
@@ -130,63 +127,63 @@ function scoreRepo({repoMeta: repoMeta, issues: issues, readmeText: readmeText, 
     const linksToInstallDoc = /\[[^\]]*install[^\]]*\]\([^)]+\)/i.test(readmeText);
     const namesRequiredTooling = /(prerequisites?|requirements?)\s*:?[\s\S]{0,80}\b(tensorflow|pytorch|python|cuda|jax)\b/i.test(readmeText) || /\btested (with|on)\b[\s\S]{0,80}\b(python|pytorch|tensorflow|cuda|jax)\b/i.test(readmeText);
     if (envSetup.found) {
+      score += 25;
       breakdown.push({
         ok: true,
-        text: `README shows how to set up the environment (${envSetup.ecosystem}, via ${envSetup.via}).`
+        text: `README shows how to set up the environment (${envSetup.ecosystem}, via ${envSetup.via}). (25/25)`
       });
     } else if (linksToInstallDoc) {
+      score += 15;
       breakdown.push({
         ok: null,
-        text: `No inline install command in the README, but it links out to a separate install doc (contents not checked).`
+        text: `No inline install command in the README, but it links out to a separate install doc (contents not checked). (15/25)`
       });
     } else if (namesRequiredTooling) {
-      score -= 5;
+      score += 15;
       breakdown.push({
         ok: null,
-        text: `README names required tooling (e.g. a specific framework/version) but has no copy-pasteable install command.`
+        text: `README names required tooling (e.g. a specific framework/version) but has no copy-pasteable install command. (15/25)`
       });
     } else {
-      score -= 10;
       breakdown.push({
         ok: false,
-        text: `No dependency file or install command found in README.`
+        text: `No dependency file or install command found in README. (0/25)`
       });
     }
     if (hasWeights) {
+      score += 25;
       breakdown.push({
         ok: true,
-        text: `Pretrained weights/checkpoints appear to be provided.`
+        text: `Pretrained weights/checkpoints appear to be provided. (25/25)`
       });
     } else {
-      score -= 10;
       breakdown.push({
         ok: false,
-        text: `No pretrained weights or checkpoints mentioned.`
+        text: `No pretrained weights or checkpoints mentioned. (0/25)`
       });
     }
     if (hasResultsTable) {
+      score += 25;
       breakdown.push({
         ok: true,
-        text: `README includes a results section/table.`
+        text: `README includes a results section/table. (25/25)`
       });
     } else {
-      score -= 5;
       breakdown.push({
         ok: false,
-        text: `No results section or table found in README (a "results" mention in prose doesn't count).`
+        text: `No results section or table found in README (a "results" mention in prose doesn't count). (0/25)`
       });
     }
   } else {
-    score -= 15;
     breakdown.push({
       ok: false,
-      text: `Could not find a README.`
+      text: `Could not find a README, none of the 4 checks could be evaluated. (0/100)`
     });
   }
   if (hasWorkflow) {
     breakdown.push({
       ok: true,
-      text: `Repo has a CI workflow configured.`
+      text: `Repo has a CI workflow configured. Informational, doesn't affect the score.`
     });
   }
   score = Math.max(0, Math.min(100, Math.round(score)));

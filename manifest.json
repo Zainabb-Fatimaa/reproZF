@@ -12,6 +12,7 @@
     "https://arxiv.org/*",
     "https://www.science.org/*",
     "https://www.researchgate.net/*",
+    "https://www.sciencedirect.com/*",
     "https://formspree.io/*"
   ],
   "background": {
@@ -23,7 +24,8 @@
         "https://github.com/*",
         "https://arxiv.org/abs/*",
         "https://www.science.org/doi/*",
-        "https://www.researchgate.net/publication/*"
+        "https://www.researchgate.net/publication/*",
+        "https://www.sciencedirect.com/science/article/pii/*"
       ],
       "js": ["content.js"],
       "css": ["widget.css"],
